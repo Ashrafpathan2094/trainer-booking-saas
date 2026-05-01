@@ -1,7 +1,13 @@
-node_modules
+# dependencies
+node_modules/
+**/node_modules/
+
+# env
 .env
-dist
-build
-.vite
-.next
-coverage
+
+# build outputs
+dist/
+build/
+.vite/
+.next/
+coverage/
