@@ -74,7 +74,7 @@ export const verifyOtpService = async (email: string, otp: string) => {
   const accessToken = jwt.sign(
     { userId: user.id, role: user.role },
     process.env.JWT_SECRET || "secret",
-    { expiresIn: "15m" },
+    { expiresIn: "7d" },
   );
 
   const refreshToken = generateRefreshToken();

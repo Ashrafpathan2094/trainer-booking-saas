@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import authRoutes from "./modules/auth/routes/auth.routes";
+import trainerRoutes from "./modules/trainer/routes/trainer.routes";
 
 dotenv.config();
 
@@ -17,6 +18,8 @@ app.get("/", (req, res) => {
 
 // Routes
 app.use("/auth", authRoutes);
+
+app.use("/trainer", trainerRoutes);
 
 const PORT = process.env.PORT || 5000;
 
