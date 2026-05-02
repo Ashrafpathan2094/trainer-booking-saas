@@ -521,3 +521,9 @@ If you want next, I can help you with:
 * Folder structure for enterprise app
 
 Just tell me 👍
+
+
+
+RESEND_API_KEY = re_ef4S8AC8_AupDwNSgUajar5zeDdVZsrgg
+
+Gmail app = dnis foxv kqdi pboc

@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  trainer
+  customer
+}
+
+enum SlotStatus {
+  available
+  booked
+  blocked
+}
+
+enum BookingStatus {
+  confirmed
+  cancelled
+  completed
+  no_show
+}
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  refunded
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  role        Role
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  trainerProfile TrainerProfile?
+  bookings       Booking[]
+  payments       Payment[]
+  sessions       Session[]
+}
+
+model OtpCode {
+  id         String   @id @default(uuid())
+  email      String
+  otp        String
+  expiresAt  DateTime
+  isUsed     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TrainerProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  bio             String?
+  specialties     String[]
+  pricePerSession Float
+  stripeAccountId String?
+  createdAt       DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slots Slot[]
+}
+
+model Slot {
+  id        String     @id @default(uuid())
+  trainerId String
+  startTime DateTime
+  endTime   DateTime
+  status    SlotStatus @default(available)
+  createdAt DateTime   @default(now())
+
+  trainer TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  booking Booking?
+
+  @@index([trainerId, startTime, status])
+}
+
+model Booking {
+  id         String        @id @default(uuid())
+  slotId     String        @unique
+  customerId String
+  paymentId  String?
+  status     BookingStatus @default(confirmed)
+  notes      String?
+  createdAt  DateTime      @default(now())
+
+  slot     Slot    @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  customer User    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  payment  Payment? @relation(fields: [paymentId], references: [id])
+
+  review Review?
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  userId          String
+  stripePaymentId String
+  amount          Float
+  currency        String
+  status          PaymentStatus
+  createdAt       DateTime      @default(now())
+  refundedAt      DateTime?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  bookingId String   @unique
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}

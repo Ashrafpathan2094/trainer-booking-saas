@@ -1,0 +1,41 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "predev": "prisma generate",
+    "dev": "nodemon --watch src --ext ts --exec \"pnpm exec tsx\" src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.2",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "joi": "^18.1.2",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.7",
+    "pg": "^8.20.0",
+    "prisma": "^5.22.0",
+    "resend": "^6.12.2"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/hapi__joi": "^17.1.15",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.12.2",
+    "@types/nodemailer": "^8.0.0",
+    "@types/pg": "^8.20.0",
+    "nodemon": "^3.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "~6.0.3"
+  }
+}
