@@ -1,16 +1,5 @@
 import { prisma } from "../../../config/prisma";
 
-// normalize to avoid precision mismatch
-const normalizeDate = (d: Date) => new Date(d.toISOString());
-
-// parse date safely
-const parseISODate = (input: string | Date) => {
-  if (input instanceof Date) return normalizeDate(input);
-
-  const [y, m, d] = input.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d));
-};
-
 // parse HH:mm
 const parseTimeUTC = (date: Date, time: string) => {
   const [h, m] = time.split(":").map(Number);
@@ -119,4 +108,67 @@ export const createBulkSlotsService = async (userId: string, data: any) => {
     createdCount,
     skippedCount,
   };
+};
+
+// helpers (reuse if already present)
+const normalizeDate = (d: Date) => new Date(d.toISOString());
+
+const parseISODate = (input: string | Date) => {
+  if (input instanceof Date) return normalizeDate(input);
+
+  const [y, m, d] = input.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+};
+
+export const getAvailableSlotsService = async (
+  trainerId: string,
+  startDateInput: string | Date,
+  endDateInput: string | Date,
+) => {
+  const startDate = parseISODate(startDateInput);
+  const endDate = parseISODate(endDateInput);
+
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    throw new Error("Invalid date range");
+  }
+
+  if (endDate < startDate) {
+    throw new Error("End date cannot be before start date");
+  }
+
+  // 🔐 Normalize to full-day UTC boundaries
+  const rangeStart = new Date(startDate);
+  rangeStart.setUTCHours(0, 0, 0, 0);
+
+  const rangeEnd = new Date(endDate);
+  rangeEnd.setUTCHours(23, 59, 59, 999);
+
+  // 🔥 Prevent huge queries (important for SaaS)
+  const diffDays =
+    (rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24);
+
+  if (diffDays > 30) {
+    throw new Error("Date range cannot exceed 30 days");
+  }
+
+  // 🔥 Exclude past + near-time slots
+  const bufferMinutes = 15;
+  const minAllowedTime = new Date(Date.now() + bufferMinutes * 60 * 1000);
+
+  const slots = await prisma.slot.findMany({
+    where: {
+      trainerId,
+      status: "available",
+      startTime: {
+        gte: rangeStart,
+        lte: rangeEnd,
+        gt: minAllowedTime,
+      },
+    },
+    orderBy: {
+      startTime: "asc",
+    },
+  });
+
+  return slots;
 };

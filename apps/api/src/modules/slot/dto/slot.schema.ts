@@ -12,3 +12,9 @@ export const createBulkSlotSchema = Joi.object({
   endTime: Joi.string().required(),
   slotDuration: Joi.number().min(15).required(),
 });
+
+export const getAvailableSlotsSchema = Joi.object({
+  trainerId: Joi.string().uuid().required(),
+  startDate: Joi.alternatives(Joi.string(), Joi.date()).required(),
+  endDate: Joi.alternatives(Joi.string(), Joi.date()).required(),
+});
