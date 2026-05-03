@@ -527,3 +527,15 @@ Just tell me 👍
 RESEND_API_KEY = re_ef4S8AC8_AupDwNSgUajar5zeDdVZsrgg
 
 Gmail app = dnis foxv kqdi pboc
+
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+ALTER TABLE "Slot" DROP CONSTRAINT IF EXISTS no_overlap_slots;
+
+ALTER TABLE "Slot"
+ADD CONSTRAINT no_overlap_slots
+EXCLUDE USING gist (
+  "trainerId" WITH =,
+  tsrange("startTime", "endTime", '[)') WITH &&
+);

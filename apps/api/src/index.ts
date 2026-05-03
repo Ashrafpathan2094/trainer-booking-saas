@@ -1,8 +1,8 @@
-import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-
+import express from "express";
 import authRoutes from "./modules/auth/routes/auth.routes";
+import slotRoutes from "./modules/slot/routes/slot.routes";
 import trainerRoutes from "./modules/trainer/routes/trainer.routes";
 
 dotenv.config();
@@ -20,6 +20,8 @@ app.get("/", (req, res) => {
 app.use("/auth", authRoutes);
 
 app.use("/trainer", trainerRoutes);
+
+app.use("/slots", slotRoutes);
 
 const PORT = process.env.PORT || 5000;
 
