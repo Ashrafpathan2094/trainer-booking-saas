@@ -4,6 +4,7 @@ import express from "express";
 import authRoutes from "./modules/auth/routes/auth.routes";
 import slotRoutes from "./modules/slot/routes/slot.routes";
 import trainerRoutes from "./modules/trainer/routes/trainer.routes";
+import bookingRoutes from "./modules/booking/routes/booking.routes";
 
 dotenv.config();
 
@@ -22,6 +23,8 @@ app.use("/auth", authRoutes);
 app.use("/trainer", trainerRoutes);
 
 app.use("/slots", slotRoutes);
+
+app.use("/bookings", bookingRoutes);
 
 const PORT = process.env.PORT || 5000;
 
