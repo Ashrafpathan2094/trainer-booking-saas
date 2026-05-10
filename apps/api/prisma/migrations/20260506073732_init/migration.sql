@@ -1,13 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the column `otp` on the `User` table. All the data in the column will be lost.
-  - You are about to drop the column `phone` on the `User` table. All the data in the column will be lost.
-  - A unique constraint covering the columns `[email]` on the table `User` will be added. If there are existing duplicate values, this will fail.
-  - Added the required column `email` to the `User` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `role` to the `User` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('admin', 'trainer', 'customer');
 
@@ -15,21 +5,21 @@ CREATE TYPE "Role" AS ENUM ('admin', 'trainer', 'customer');
 CREATE TYPE "SlotStatus" AS ENUM ('available', 'booked', 'blocked');
 
 -- CreateEnum
-CREATE TYPE "BookingStatus" AS ENUM ('confirmed', 'cancelled', 'completed', 'no_show');
+CREATE TYPE "BookingStatus" AS ENUM ('pending', 'confirmed', 'cancelled', 'completed', 'no_show');
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('pending', 'succeeded', 'failed', 'refunded');
 
--- DropIndex
-DROP INDEX "User_phone_key";
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "email" TEXT NOT NULL,
+    "isVerified" BOOLEAN NOT NULL DEFAULT false,
+    "role" "Role" NOT NULL,
 
--- AlterTable
-ALTER TABLE "User" DROP COLUMN "otp",
-DROP COLUMN "phone",
-ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN     "email" TEXT NOT NULL,
-ADD COLUMN     "isVerified" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "role" "Role" NOT NULL;
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "OtpCode" (
@@ -85,8 +75,10 @@ CREATE TABLE "Booking" (
     "slotId" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
     "paymentId" TEXT,
-    "status" "BookingStatus" NOT NULL DEFAULT 'confirmed',
+    "status" "BookingStatus" NOT NULL DEFAULT 'pending',
     "notes" TEXT,
+    "cancelledAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Booking_pkey" PRIMARY KEY ("id")
@@ -96,7 +88,9 @@ CREATE TABLE "Booking" (
 CREATE TABLE "Payment" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "stripePaymentId" TEXT NOT NULL,
+    "slotId" TEXT NOT NULL,
+    "razorpayOrderId" TEXT NOT NULL,
+    "razorpayPaymentId" TEXT,
     "amount" DOUBLE PRECISION NOT NULL,
     "currency" TEXT NOT NULL,
     "status" "PaymentStatus" NOT NULL,
@@ -118,19 +112,34 @@ CREATE TABLE "Review" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "TrainerProfile_userId_key" ON "TrainerProfile"("userId");
 
 -- CreateIndex
 CREATE INDEX "Slot_trainerId_startTime_status_idx" ON "Slot"("trainerId", "startTime", "status");
 
 -- CreateIndex
+CREATE INDEX "Slot_trainerId_startTime_idx" ON "Slot"("trainerId", "startTime");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Booking_slotId_key" ON "Booking"("slotId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Review_bookingId_key" ON "Review"("bookingId");
+CREATE INDEX "Booking_customerId_status_idx" ON "Booking"("customerId", "status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE INDEX "Booking_createdAt_idx" ON "Booking"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Payment_razorpayOrderId_key" ON "Payment"("razorpayOrderId");
+
+-- CreateIndex
+CREATE INDEX "Payment_userId_status_idx" ON "Payment"("userId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Review_bookingId_key" ON "Review"("bookingId");
 
 -- AddForeignKey
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -142,13 +151,13 @@ ALTER TABLE "TrainerProfile" ADD CONSTRAINT "TrainerProfile_userId_fkey" FOREIGN
 ALTER TABLE "Slot" ADD CONSTRAINT "Slot_trainerId_fkey" FOREIGN KEY ("trainerId") REFERENCES "TrainerProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Booking" ADD CONSTRAINT "Booking_slotId_fkey" FOREIGN KEY ("slotId") REFERENCES "Slot"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Booking" ADD CONSTRAINT "Booking_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Booking" ADD CONSTRAINT "Booking_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "Payment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Booking" ADD CONSTRAINT "Booking_slotId_fkey" FOREIGN KEY ("slotId") REFERENCES "Slot"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

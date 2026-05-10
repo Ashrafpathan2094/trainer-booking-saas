@@ -8,6 +8,7 @@ export const createBookingService = async (userId: string, slotId: string) => {
         trainer: true,
       },
     });
+    console.log("🚀 ~ createBookingService ~ slot:", slot);
 
     if (!slot) {
       throw new Error("Slot not found");
@@ -25,8 +26,13 @@ export const createBookingService = async (userId: string, slotId: string) => {
       throw new Error("Cannot book past slots");
     }
 
-    const existingBooking = await tx.booking.findUnique({
-      where: { slotId },
+    const existingBooking = await tx.booking.findFirst({
+      where: {
+        slotId,
+        status: {
+          in: ["confirmed", "pending"],
+        },
+      },
     });
 
     if (existingBooking) {
@@ -49,5 +55,76 @@ export const createBookingService = async (userId: string, slotId: string) => {
     });
 
     return booking;
+  });
+};
+
+export const cancelBookingService = async (
+  userId: string,
+  role: string,
+  bookingId: string,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        slot: {
+          include: {
+            trainer: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new Error("Booking not found");
+    }
+
+    if (booking.status === "cancelled") {
+      throw new Error("Booking already cancelled");
+    }
+
+    if (booking.status === "completed") {
+      throw new Error("Completed booking cannot be cancelled");
+    }
+
+    if (booking.slot.startTime < new Date()) {
+      throw new Error("Past bookings cannot be cancelled");
+    }
+
+    const isCustomerOwner = booking.customerId === userId;
+
+    const isTrainerOwner = booking.slot.trainer.userId === userId;
+
+    const isAdmin = role === "admin";
+
+    if (!isCustomerOwner && !isTrainerOwner && !isAdmin) {
+      throw new Error("Unauthorized");
+    }
+
+    if (isCustomerOwner) {
+      const hoursLeft =
+        (booking.slot.startTime.getTime() - Date.now()) / (1000 * 60 * 60);
+
+      if (hoursLeft < 24) {
+        throw new Error("Bookings cannot be cancelled within 24 hours");
+      }
+    }
+
+    const updatedBooking = await tx.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: "cancelled",
+        cancelledAt: new Date(),
+      },
+    });
+
+    await tx.slot.update({
+      where: { id: booking.slotId },
+      data: {
+        status: "available",
+      },
+    });
+
+    return updatedBooking;
   });
 };

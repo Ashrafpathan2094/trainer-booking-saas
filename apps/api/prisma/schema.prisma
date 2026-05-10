@@ -56,32 +56,44 @@ model Slot {
   endTime   DateTime
   status    SlotStatus     @default(available)
   createdAt DateTime       @default(now())
-  booking   Booking?
+  bookings Booking[]
   trainer   TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
 
   @@index([trainerId, startTime, status])
+  @@index([trainerId, startTime])
+
 }
 
 model Booking {
-  id         String        @id @default(uuid())
-  slotId     String        @unique
-  customerId String
-  paymentId  String?
-  status     BookingStatus @default(confirmed)
-  notes      String?
-  createdAt  DateTime      @default(now())
-  customer   User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  payment    Payment?      @relation(fields: [paymentId], references: [id])
-  slot       Slot          @relation(fields: [slotId], references: [id], onDelete: Cascade)
-  review     Review?
+  id           String        @id @default(uuid())
+  slotId       String        
+  customerId   String
+  paymentId    String?
+  status       BookingStatus @default(pending)
+
+  notes        String?
+
+  cancelledAt  DateTime?
+  completedAt  DateTime?
+
+  createdAt    DateTime @default(now())
+
+  customer User @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  payment  Payment? @relation(fields: [paymentId], references: [id])
+  slot     Slot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  review Review?
+  @@index([slotId])
+  @@index([customerId, status])
+  @@index([createdAt])
 }
 
 model Payment {
   id                String   @id @default(uuid())
   userId            String
-  slotId            String   
+  slotId            String
   razorpayOrderId   String   @unique
-  razorpayPaymentId String?  
+  razorpayPaymentId String?
   amount            Float
   currency          String
   status            PaymentStatus
@@ -90,6 +102,8 @@ model Payment {
 
   bookings Booking[]
   user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
 }
 
 model Review {
@@ -114,6 +128,7 @@ enum SlotStatus {
 }
 
 enum BookingStatus {
+  pending
   confirmed
   cancelled
   completed
