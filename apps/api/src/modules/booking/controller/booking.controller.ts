@@ -3,6 +3,7 @@ import {
   cancelBookingService,
   createBookingService,
   getMyBookingsService,
+  getTrainerSessionsService,
 } from "../service/booking.service";
 
 export const createBooking = async (req: any, res: Response) => {
@@ -46,6 +47,18 @@ export const cancelBooking = async (req: any, res: Response) => {
 export const getMyBookings = async (req: any, res: Response) => {
   try {
     const result = await getMyBookingsService(req.user.userId, req.query);
+
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(400).json({
+      message: err.message,
+    });
+  }
+};
+
+export const getTrainerSessions = async (req: any, res: Response) => {
+  try {
+    const result = await getTrainerSessionsService(req.user.userId, req.query);
 
     return res.json(result);
   } catch (err: any) {

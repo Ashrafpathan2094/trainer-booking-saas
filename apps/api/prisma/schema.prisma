@@ -72,7 +72,7 @@ model Booking {
   status       BookingStatus @default(pending)
 
   notes        String?
-
+  trainerNotes  String?
   cancelledAt  DateTime?
   completedAt  DateTime?
 

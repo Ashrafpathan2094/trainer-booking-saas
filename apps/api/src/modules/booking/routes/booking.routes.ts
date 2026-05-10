@@ -3,6 +3,7 @@ import {
   cancelBooking,
   createBooking,
   getMyBookings,
+  getTrainerSessions,
 } from "../controller/booking.controller";
 import { authMiddleware } from "../../../middlewares/auth.middleware";
 import { requireRole } from "../../../middlewares/role.middleware";
@@ -11,6 +12,7 @@ import {
   cancelBookingSchema,
   createBookingSchema,
   getMyBookingsSchema,
+  getTrainerSessionsSchema,
 } from "../dto/booking.schema";
 
 const router = Router();
@@ -39,6 +41,16 @@ router.get(
     query: getMyBookingsSchema,
   }),
   getMyBookings,
+);
+
+router.get(
+  "/trainer/sessions",
+  authMiddleware,
+  requireRole("trainer"),
+  validate({
+    query: getTrainerSessionsSchema,
+  }),
+  getTrainerSessions,
 );
 
 export default router;

@@ -144,7 +144,6 @@ export const getMyBookingsService = async (userId: string, query: any) => {
     customerId: userId,
   };
 
-  // ✅ UPCOMING
   if (type === "upcoming") {
     where.status = {
       in: ["pending", "confirmed"],
@@ -157,7 +156,6 @@ export const getMyBookingsService = async (userId: string, query: any) => {
     };
   }
 
-  // ✅ PAST
   if (type === "past") {
     where.OR = [
       {
@@ -179,19 +177,16 @@ export const getMyBookingsService = async (userId: string, query: any) => {
     ];
   }
 
-  // ✅ CANCELLED
   if (type === "cancelled") {
     where.status = "cancelled";
   }
 
-  // ✅ TOTAL COUNT FIRST
   const total = await prisma.booking.count({
     where,
   });
 
   const totalPages = Math.ceil(total / limit) || 1;
 
-  // ✅ PAGE OUT OF RANGE
   if (page > totalPages) {
     return {
       data: [],
@@ -204,7 +199,6 @@ export const getMyBookingsService = async (userId: string, query: any) => {
     };
   }
 
-  // ✅ FETCH BOOKINGS
   const bookings = await prisma.booking.findMany({
     where,
 
@@ -243,6 +237,123 @@ export const getMyBookingsService = async (userId: string, query: any) => {
     pagination: {
       total,
       page,
+      limit,
+      totalPages,
+    },
+  };
+};
+
+export const getTrainerSessionsService = async (userId: string, query: any) => {
+  const trainer = await prisma.trainerProfile.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!trainer) {
+    throw new Error("Trainer profile not found");
+  }
+
+  const type = query.type || "upcoming";
+
+  const page = Math.max(Number(query.page) || 1, 1);
+
+  const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 50);
+
+  const now = new Date();
+
+  const where: any = {
+    slot: {
+      trainerId: trainer.id,
+    },
+  };
+
+  if (type === "upcoming") {
+    where.status = {
+      in: ["pending", "confirmed"],
+    };
+
+    where.slot = {
+      trainerId: trainer.id,
+
+      startTime: {
+        gte: now,
+      },
+    };
+  }
+
+  if (type === "past") {
+    where.OR = [
+      {
+        status: {
+          in: ["completed"],
+        },
+      },
+
+      {
+        slot: {
+          trainerId: trainer.id,
+
+          startTime: {
+            lt: now,
+          },
+        },
+
+        status: {
+          not: "cancelled",
+        },
+      },
+    ];
+  }
+
+  if (type === "cancelled") {
+    where.status = "cancelled";
+  }
+
+  const total = await prisma.booking.count({
+    where,
+  });
+
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  const safePage = page > totalPages ? totalPages : page;
+
+  const skip = (safePage - 1) * limit;
+
+  const sessions = await prisma.booking.findMany({
+    where,
+
+    include: {
+      customer: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+
+      slot: true,
+
+      payment: true,
+
+      review: true,
+    },
+
+    orderBy: {
+      slot: {
+        startTime: type === "upcoming" ? "asc" : "desc",
+      },
+    },
+
+    skip,
+    take: limit,
+  });
+
+  return {
+    data: sessions,
+
+    pagination: {
+      total,
+      page: safePage,
       limit,
       totalPages,
     },
