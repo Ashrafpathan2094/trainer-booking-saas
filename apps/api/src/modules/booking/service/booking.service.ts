@@ -128,3 +128,123 @@ export const cancelBookingService = async (
     return updatedBooking;
   });
 };
+
+export const getMyBookingsService = async (userId: string, query: any) => {
+  const type = query.type || "upcoming";
+
+  const page = Math.max(Number(query.page) || 1, 1);
+
+  const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 50);
+
+  const skip = (page - 1) * limit;
+
+  const now = new Date();
+
+  const where: any = {
+    customerId: userId,
+  };
+
+  // ✅ UPCOMING
+  if (type === "upcoming") {
+    where.status = {
+      in: ["pending", "confirmed"],
+    };
+
+    where.slot = {
+      startTime: {
+        gte: now,
+      },
+    };
+  }
+
+  // ✅ PAST
+  if (type === "past") {
+    where.OR = [
+      {
+        status: {
+          in: ["completed", "no_show"],
+        },
+      },
+      {
+        slot: {
+          startTime: {
+            lt: now,
+          },
+        },
+
+        status: {
+          not: "cancelled",
+        },
+      },
+    ];
+  }
+
+  // ✅ CANCELLED
+  if (type === "cancelled") {
+    where.status = "cancelled";
+  }
+
+  // ✅ TOTAL COUNT FIRST
+  const total = await prisma.booking.count({
+    where,
+  });
+
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  // ✅ PAGE OUT OF RANGE
+  if (page > totalPages) {
+    return {
+      data: [],
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+    };
+  }
+
+  // ✅ FETCH BOOKINGS
+  const bookings = await prisma.booking.findMany({
+    where,
+
+    include: {
+      slot: {
+        include: {
+          trainer: {
+            include: {
+              user: {
+                select: {
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
+
+      payment: true,
+      review: true,
+    },
+
+    orderBy: {
+      slot: {
+        startTime: type === "upcoming" ? "asc" : "desc",
+      },
+    },
+
+    skip,
+    take: limit,
+  });
+
+  return {
+    data: bookings,
+
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages,
+    },
+  };
+};

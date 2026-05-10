@@ -2,6 +2,7 @@ import { Response } from "express";
 import {
   cancelBookingService,
   createBookingService,
+  getMyBookingsService,
 } from "../service/booking.service";
 
 export const createBooking = async (req: any, res: Response) => {
@@ -35,6 +36,18 @@ export const cancelBooking = async (req: any, res: Response) => {
       message: "Booking cancelled successfully",
       booking,
     });
+  } catch (err: any) {
+    return res.status(400).json({
+      message: err.message,
+    });
+  }
+};
+
+export const getMyBookings = async (req: any, res: Response) => {
+  try {
+    const result = await getMyBookingsService(req.user.userId, req.query);
+
+    return res.json(result);
   } catch (err: any) {
     return res.status(400).json({
       message: err.message,
