@@ -5,6 +5,7 @@ import authRoutes from "./modules/auth/routes/auth.routes";
 import slotRoutes from "./modules/slot/routes/slot.routes";
 import trainerRoutes from "./modules/trainer/routes/trainer.routes";
 import bookingRoutes from "./modules/booking/routes/booking.routes";
+import { bookingCompletionJob } from "./jobs/bookingCompletion.job";
 
 dotenv.config();
 
@@ -16,6 +17,9 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("API running 🚀");
 });
+
+//cron job to complete bookings that have ended
+bookingCompletionJob.start();
 
 // Routes
 app.use("/auth", authRoutes);
